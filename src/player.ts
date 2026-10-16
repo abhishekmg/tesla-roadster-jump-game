@@ -207,7 +207,7 @@ export class Player {
     const p = this.group.position.clone().setY(this.y + 0.8);
     this.particles.burst('hot', p, 30, 14, 0.5, 0.45, 0.3);
     this.particles.burst('flame', p, 40, 11, 0.8, 0.4, 0.4);
-    this.particles.burst('smoke', p, 24, 5, 1.2, 0.5, 0.8);
+    this.particles.burst('smoke', p, 18, 5, 1.1, 0.3, 0.8);
     this.particles.burst('debris', p, 24, 12, 1.4, 0.25, 0.6);
   }
 
@@ -227,7 +227,7 @@ export class Player {
       pos.y = this.y;
       this.setFlames(0);
       if (Math.random() < 0.2) {
-        this.particles.emit('smoke', pos.clone().setY(this.y + 0.6), new THREE.Vector3((Math.random() - 0.5) * 1, 2.5, -1), 1.2, 0.45);
+        this.particles.emit('smoke', pos.clone().setY(this.y + 0.6), new THREE.Vector3((Math.random() - 0.5) * 1, 2.5, -1), 1.0, 0.28);
       }
       return;
     }

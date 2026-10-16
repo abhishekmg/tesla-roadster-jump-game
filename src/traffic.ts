@@ -28,6 +28,8 @@ export class Traffic {
   private pool = Object.fromEntries(TRAFFIC_TYPES.map((t) => [t, []])) as unknown as Record<TrafficType, VehicleModel[]>;
   private untilNextRow = 0;
   private rowsSpawned = 0;
+  /** Size of the next row, decided one row early so walls get room in front of them too. */
+  private nextCount: number | null = null;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -38,6 +40,7 @@ export class Traffic {
     for (const car of this.active) this.release(car);
     this.active.length = 0;
     this.rowsSpawned = 0;
+    this.nextCount = null;
     this.untilNextRow = Infinity;
     if (relSpeed <= 0) return;
     let z = FIRST_ROW_Z;
@@ -67,13 +70,10 @@ export class Traffic {
   }
 
   private spawnRow(relSpeed: number, level: number, z = SPAWN_Z) {
-    // Each level packs rows closer together (1.35s apart at level 1, 0.8s by level 7)...
-    const gapTime = Math.max(0.8, 1.35 - level * 0.09);
-    // ...and fills more lanes per row: mostly two cars, with full 3-lane walls you must jump.
-    const wallChance = Math.min(0.35, 0.15 + level * 0.04);
-    const singleChance = Math.max(0.08, 0.25 - level * 0.03);
-    const roll = Math.random();
-    let count = roll < wallChance ? 3 : roll < wallChance + singleChance ? 1 : 2;
+    // Rows come closer together each level (0.95s apart at level 1, 0.75s by level 8). Rows you
+    // can only jump get extra room below, since a hop keeps you airborne ~0.94s.
+    const gapTime = Math.max(0.75, 0.95 - level * 0.03);
+    let count = this.nextCount ?? this.rollCount(level);
     let lanes = [0, 1, 2].sort(() => Math.random() - 0.5).slice(0, count);
     // A few seconds in, send a lone Semi down the middle lane (where you start) so
     // every run introduces the double-jump early.
@@ -82,6 +82,11 @@ export class Traffic {
       count = 1;
       lanes = [1];
     }
+    // Convoys: in two-car rows, cars often bring a second car right behind them.
+    // One hop can't clear a pair, so you dodge into the free lane (or boost over a pair).
+    const convoyChance = count === 2 ? Math.min(0.95, 0.8 + level * 0.03) : 0;
+    // Three-car convoys are too long to boost over, so they only appear from level 3 (dodge them).
+    const thirdCarChance = level >= 2 ? Math.min(0.45, 0.15 + (level - 2) * 0.06) : 0;
 
     let longest = 0;
     let hasTruck = false;
@@ -90,15 +95,41 @@ export class Traffic {
       const model = this.acquire(type);
       // Stagger cars in a row a little so it doesn't look like a fence.
       const stagger = count > 1 ? Math.random() * 3 : 0;
-      model.group.position.set(LANES[lane], 0, z - model.length / 2 - stagger);
+      let back = stagger + model.length;
+      model.group.position.set(LANES[lane], 0, z - back + model.length / 2);
       this.active.push({ type, model, lane });
-      longest = Math.max(longest, model.length + stagger);
       hasTruck ||= TRUCKS.has(type);
+      if (!TRUCKS.has(type) && Math.random() < convoyChance) {
+        const followers = Math.random() < thirdCarChance ? 2 : 1;
+        for (let i = 0; i < followers; i++) {
+          const followerType = this.pickCar();
+          const follower = this.acquire(followerType);
+          back += 1.5 + Math.random() * 2;
+          follower.group.position.set(LANES[lane], 0, z - back - follower.length / 2);
+          back += follower.length;
+          this.active.push({ type: followerType, model: follower, lane });
+        }
+      }
+      longest = Math.max(longest, back);
     }
-    // Rows you must jump over get extra room so there's time to land and react:
+    // Rows you must jump over get extra room, before and after, so there's time to land and react:
     // the boost keeps you airborne ~0.5s longer than a hop, and a wall leaves no lane to dodge into.
-    const extra = (hasTruck ? 0.7 : 0) + (count === 3 ? 0.35 : 0);
+    this.nextCount = this.rollCount(level);
+    const extra = (hasTruck ? 0.7 : 0) + (count === 3 ? 0.35 : 0) + (this.nextCount === 3 ? 0.3 : 0);
     this.untilNextRow = relSpeed * (gapTime + extra) + longest;
+  }
+
+  /** Lanes filled per row: mostly two (usually as convoys), some full 3-lane walls, the odd lone car. */
+  private rollCount(level: number) {
+    const wallChance = Math.min(0.3, 0.2 + level * 0.02);
+    const singleChance = Math.max(0.03, 0.08 - level * 0.01);
+    const roll = Math.random();
+    return roll < wallChance ? 3 : roll < wallChance + singleChance ? 1 : 2;
+  }
+
+  private pickCar(): TrafficType {
+    const cars: TrafficType[] = ['model3', 'modelY', 'modelS', 'modelX', 'cybercab'];
+    return cars[Math.floor(Math.random() * cars.length)];
   }
 
   private pickType(level: number, rowSize: number): TrafficType {
