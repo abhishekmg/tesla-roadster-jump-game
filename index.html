@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Roadster Runner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div id="hud" hidden>
+      <div class="stat"><span class="label">Score</span><span id="score">0</span>
+        <div class="level"><span class="label">Level</span> <span id="level">1</span><div class="level-track"><div id="level-bar"></div></div></div>
+      </div>
+      <div id="levelup" data-sub=""></div>
+      <div class="stat right"><span class="label">Best</span><span id="best">0</span></div>
+      <div class="speedo"><span id="speed">0</span> km/h</div>
+    </div>
+
+    <div id="menu" class="overlay">
+      <div class="panel">
+        <p class="eyebrow">LA Freeway Edition</p>
+        <h1>ROADSTER<br />RUNNER</h1>
+        <p class="tag">Beat the 405 at rush hour. Weave through traffic and fire the thrusters to leap over cars.</p>
+        <div class="keys">
+          <div><kbd>←</kbd><kbd>→</kbd> change lane</div>
+          <div><kbd class="wide">Space</kbd> hop over cars</div>
+          <div><kbd class="wide">Space</kbd> ×2 boost over trucks</div>
+          <div><kbd>↓</kbd> drop fast</div>
+        </div>
+        <button id="start-btn">Start</button>
+        <p class="hint">or press Space · Best <span id="menu-best">0</span></p>
+      </div>
+    </div>
+
+    <div id="gameover" class="overlay" hidden>
+      <div class="panel">
+        <p class="eyebrow danger">Crashed</p>
+        <p id="new-best" class="new-best" hidden>New best!</p>
+        <div class="final"><span id="final-score">0</span></div>
+        <p class="tag">Reached level <span id="final-level">1</span></p>
+        <p class="tag">Best <span id="final-best">0</span></p>
+        <button id="restart-btn">Drive again</button>
+        <p class="hint">or press Space</p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
