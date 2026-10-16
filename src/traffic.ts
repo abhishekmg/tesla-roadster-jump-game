@@ -67,14 +67,13 @@ export class Traffic {
   }
 
   private spawnRow(relSpeed: number, level: number, z = SPAWN_Z) {
-    // Each level packs rows closer together (2.1s apart at level 1, ~1s by level 7)...
-    const gapTime = Math.max(0.95, 2.1 - level * 0.19);
-    // ...and fills more lanes per row.
-    const singleChance = Math.max(0.2, 0.55 - level * 0.06);
-    // Fully blocked rows must be jumped, so only allow them while there's time to land between rows.
-    const allowWall = level >= 1 && gapTime >= 1.3;
+    // Each level packs rows closer together (1.35s apart at level 1, 0.8s by level 7)...
+    const gapTime = Math.max(0.8, 1.35 - level * 0.09);
+    // ...and fills more lanes per row: mostly two cars, with full 3-lane walls you must jump.
+    const wallChance = Math.min(0.35, 0.15 + level * 0.04);
+    const singleChance = Math.max(0.08, 0.25 - level * 0.03);
     const roll = Math.random();
-    let count = allowWall && roll < 0.12 + level * 0.02 ? 3 : roll < singleChance ? 1 : 2;
+    let count = roll < wallChance ? 3 : roll < wallChance + singleChance ? 1 : 2;
     let lanes = [0, 1, 2].sort(() => Math.random() - 0.5).slice(0, count);
     // A few seconds in, send a lone Semi down the middle lane (where you start) so
     // every run introduces the double-jump early.
@@ -96,8 +95,10 @@ export class Traffic {
       longest = Math.max(longest, model.length + stagger);
       hasTruck ||= TRUCKS.has(type);
     }
-    // The boost keeps you airborne ~0.5s longer than a hop, so leave room to land and react.
-    this.untilNextRow = relSpeed * (gapTime + (hasTruck ? 0.7 : 0)) + longest;
+    // Rows you must jump over get extra room so there's time to land and react:
+    // the boost keeps you airborne ~0.5s longer than a hop, and a wall leaves no lane to dodge into.
+    const extra = (hasTruck ? 0.7 : 0) + (count === 3 ? 0.35 : 0);
+    this.untilNextRow = relSpeed * (gapTime + extra) + longest;
   }
 
   private pickType(level: number, rowSize: number): TrafficType {
