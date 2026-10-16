@@ -1,5 +1,8 @@
 import './style.css';
+import { inject } from '@vercel/analytics';
 import { Game } from './game';
+
+inject();
 
 const game = new Game(document.getElementById('app')!);
 if (import.meta.env.DEV) Object.assign(window, { game });

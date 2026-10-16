@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { track } from '@vercel/analytics';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Particles } from './particles';
 import { Player } from './player';
@@ -122,6 +123,7 @@ export class Game {
   }
 
   private start() {
+    track('game_start');
     this.state = 'playing';
     this.speed = START_SPEED;
     this.distance = 0;
