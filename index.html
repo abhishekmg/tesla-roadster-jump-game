@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a1440" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>Roadster Runner</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -26,14 +28,20 @@
         <p class="eyebrow">LA Freeway Edition</p>
         <h1>ROADSTER<br />RUNNER</h1>
         <p class="tag">Beat the 405 at rush hour. Weave through traffic and fire the thrusters to leap over cars.</p>
-        <div class="keys">
+        <div class="keys touch">
+          <div><kbd>Swipe ← →</kbd> change lane</div>
+          <div><kbd>Tap</kbd> hop over cars</div>
+          <div><kbd>Tap</kbd> ×2 boost over trucks</div>
+          <div><kbd>Swipe ↓</kbd> drop fast</div>
+        </div>
+        <div class="keys desktop">
           <div><kbd>←</kbd><kbd>→</kbd> change lane</div>
           <div><kbd class="wide">Space</kbd> hop over cars</div>
           <div><kbd class="wide">Space</kbd> ×2 boost over trucks</div>
           <div><kbd>↓</kbd> drop fast</div>
         </div>
         <button id="start-btn">Start</button>
-        <p class="hint">or press Space · Best <span id="menu-best">0</span></p>
+        <p class="hint"><span class="desktop">or press Space</span><span class="touch">or tap anywhere</span> · Best <span id="menu-best">0</span></p>
       </div>
     </div>
 
@@ -45,7 +53,7 @@
         <p class="tag">Reached level <span id="final-level">1</span></p>
         <p class="tag">Best <span id="final-best">0</span></p>
         <button id="restart-btn">Drive again</button>
-        <p class="hint">or press Space</p>
+        <p class="hint"><span class="desktop">or press Space</span><span class="touch">or tap anywhere</span></p>
       </div>
     </div>
 

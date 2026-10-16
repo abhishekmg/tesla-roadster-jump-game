@@ -18,6 +18,32 @@ body {
   color: var(--ink);
   font-family: Inter, system-ui, sans-serif;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  /* The game owns every touch: no scroll, pinch-zoom, double-tap zoom or pull-to-refresh. */
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+/* Show touch or keyboard instructions depending on the device. */
+.touch,
+.keys.touch {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .touch {
+    display: revert;
+  }
+
+  .keys.touch {
+    display: grid;
+  }
+
+  .desktop {
+    display: none !important;
+  }
 }
 
 #app canvas {
@@ -37,8 +63,9 @@ body {
 
 .stat {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  /* Clear the notch / rounded corners on phones. */
+  top: max(16px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   font-size: 34px;
@@ -48,7 +75,7 @@ body {
 
 .stat.right {
   left: auto;
-  right: 16px;
+  right: max(16px, env(safe-area-inset-right));
   text-align: right;
   font-size: 22px;
   opacity: 0.85;
@@ -122,8 +149,8 @@ body {
 
 .speedo {
   position: absolute;
-  bottom: 16px;
-  right: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  right: max(16px, env(safe-area-inset-right));
   font-size: 13px;
   letter-spacing: 0.15em;
   color: var(--muted);

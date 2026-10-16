@@ -33,6 +33,12 @@ function saveBest(v: number) {
 
 const $ = (id: string) => document.getElementById(id)!;
 
+/** Phones and tablets: touch controls, lighter rendering. */
+const IS_TOUCH = window.matchMedia('(pointer: coarse)').matches;
+/** Finger travel (px) that counts as a swipe rather than a tap. */
+const SWIPE_PX = 28;
+const TAP_MAX_MS = 300;
+
 export class Game {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
@@ -51,6 +57,8 @@ export class Game {
   private crashTime = 0;
   private shake = 0;
   private camLook = new THREE.Vector3(0, 1, -12);
+  /** Chase-camera distance multiplier; >1 on tall portrait screens so all three lanes fit. */
+  private camScale = 1;
 
   private ui = {
     hud: $('hud'),
@@ -71,7 +79,8 @@ export class Game {
 
   constructor(container: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Phones have very dense screens; 1.5x keeps it sharp without cooking the GPU.
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_TOUCH ? 1.5 : 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -91,6 +100,7 @@ export class Game {
     this.resize();
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('keydown', (e) => this.onKey(e));
+    this.bindTouch();
     $('start-btn').addEventListener('click', () => this.start());
     $('restart-btn').addEventListener('click', () => this.start());
     this.renderBest();
@@ -101,9 +111,56 @@ export class Game {
     const h = window.innerHeight;
     this.renderer.setSize(w, h);
     this.camera.aspect = w / h;
-    // Pull back on narrow screens so all three lanes stay visible.
-    this.camera.fov = w / h < 0.9 ? 78 : 62;
+    // Narrow screens: widen the lens and pull the camera back/up so all three lanes stay visible.
+    const aspect = w / h;
+    this.camera.fov = aspect < 0.9 ? 78 : 62;
+    this.camScale = aspect < 0.9 ? THREE.MathUtils.clamp(0.75 / aspect, 1, 1.65) : 1;
     this.camera.updateProjectionMatrix();
+  }
+
+  /**
+   * Touch controls: swipe left/right to change lanes (and barrel-roll mid-air),
+   * tap or swipe up to hop (again mid-air to boost), swipe down to drop fast.
+   * Swipes fire as soon as the finger has moved far enough, so they feel instant.
+   */
+  private bindTouch() {
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+    let used = false;
+    const onButton = (e: TouchEvent) => (e.target as Element | null)?.closest('button') != null;
+
+    window.addEventListener('touchstart', (e) => {
+      if (onButton(e)) return;
+      e.preventDefault(); // no scrolling, zooming or emulated mouse clicks
+      const t = e.changedTouches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      startTime = performance.now();
+      used = false;
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (onButton(e)) return;
+      e.preventDefault();
+      if (used || this.state !== 'playing') return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX) return;
+      used = true;
+      if (Math.abs(dx) > Math.abs(dy)) this.player.move(dx < 0 ? -1 : 1);
+      else if (dy < 0) this.player.jump();
+      else this.player.fastFall();
+    }, { passive: false });
+
+    window.addEventListener('touchend', (e) => {
+      if (onButton(e) || used) return;
+      e.preventDefault();
+      if (performance.now() - startTime > TAP_MAX_MS) return;
+      if (this.state === 'playing') this.player.jump();
+      else if (this.state === 'menu' || performance.now() - this.crashTime > 700) this.start();
+    }, { passive: false });
   }
 
   private onKey(e: KeyboardEvent) {
@@ -217,7 +274,8 @@ export class Game {
     const px = this.player.x;
     const py = this.state === 'crashed' ? 0 : this.player.y;
     const k = Math.min(1, dt * 6);
-    const target = new THREE.Vector3(px * 0.7, 3.6 + py * 0.55, 8.5 + (this.speed - START_SPEED) * 0.02);
+    const s = this.camScale;
+    const target = new THREE.Vector3(px * 0.7, 3.6 * s + py * 0.55, 8.5 * s + (this.speed - START_SPEED) * 0.02);
     this.camera.position.lerp(target, k);
     this.camLook.lerp(new THREE.Vector3(px * 0.85, 1.1 + py * 0.6, -14), k);
 
