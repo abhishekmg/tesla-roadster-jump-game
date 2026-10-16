@@ -6,12 +6,14 @@ import { LANES } from './world';
 
 const SPAWN_Z = -210;
 const DESPAWN_Z = 25;
+/** Where the first pre-placed row sits at the start of a run (~2s away at start speed). */
+const FIRST_ROW_Z = -50;
 export const TRAFFIC_SPEED = 6;
 /** Hitboxes are shrunk slightly so near misses feel fair. */
 const FORGIVE = 0.15;
 /** Trucks can only be cleared with the mid-air boost (second Space press). */
-/** Row index of the guaranteed intro Semi (reaches you ~13s into a run). */
-const INTRO_SEMI_ROW = 1;
+/** Row index of the guaranteed intro Semi (reaches you ~6s into a run). */
+const INTRO_SEMI_ROW = 2;
 const TRUCKS: ReadonlySet<TrafficType> = new Set<TrafficType>(['cybertruck', 'semi']);
 
 interface Car {
@@ -31,11 +33,20 @@ export class Traffic {
     this.scene = scene;
   }
 
-  reset() {
+  /** Clear the road, then fill it with traffic out to the horizon so cars are there from the first second. */
+  reset(relSpeed = 0) {
     for (const car of this.active) this.release(car);
     this.active.length = 0;
-    this.untilNextRow = 60;
     this.rowsSpawned = 0;
+    this.untilNextRow = Infinity;
+    if (relSpeed <= 0) return;
+    let z = FIRST_ROW_Z;
+    while (z > SPAWN_Z) {
+      this.spawnRow(relSpeed, 0, z);
+      z -= this.untilNextRow;
+    }
+    // The next row spawns once the world has scrolled it up to the spawn point.
+    this.untilNextRow = SPAWN_Z - z;
   }
 
   /** `relSpeed` is how fast traffic approaches the player; `level` (0-based) drives density. */
@@ -55,7 +66,7 @@ export class Traffic {
     if (this.untilNextRow <= 0) this.spawnRow(relSpeed, level);
   }
 
-  private spawnRow(relSpeed: number, level: number) {
+  private spawnRow(relSpeed: number, level: number, z = SPAWN_Z) {
     // Each level packs rows closer together (2.1s apart at level 1, ~1s by level 7)...
     const gapTime = Math.max(0.95, 2.1 - level * 0.19);
     // ...and fills more lanes per row.
@@ -80,7 +91,7 @@ export class Traffic {
       const model = this.acquire(type);
       // Stagger cars in a row a little so it doesn't look like a fence.
       const stagger = count > 1 ? Math.random() * 3 : 0;
-      model.group.position.set(LANES[lane], 0, SPAWN_Z - model.length / 2 - stagger);
+      model.group.position.set(LANES[lane], 0, z - model.length / 2 - stagger);
       this.active.push({ type, model, lane });
       longest = Math.max(longest, model.length + stagger);
       hasTruck ||= TRUCKS.has(type);

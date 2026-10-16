@@ -133,7 +133,7 @@ export class Game {
     this.ui.levelUp.classList.remove('show');
     this.shake = 0;
     this.player.reset();
-    this.traffic.reset();
+    this.traffic.reset(START_SPEED - TRAFFIC_SPEED);
     this.particles.clear();
     this.ui.menu.hidden = true;
     this.ui.over.hidden = true;
